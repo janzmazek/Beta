@@ -13,13 +13,18 @@ int main(void) {
     double dt = 0.1;
     double t_fin = 300000;
 	double write_interval = 10;
+    
+    // Initial values
     double init_vals[6] = {-63, 0, 0.25, 0.1, 0.05, 0};
 
+    // File for saving results
     ofstream MyFile("filename.txt");
 
+    // Vectors of results and cell objects initialization
 	vector<double> result;
     vector<Cell> cells;
 
+    // Add cell objects to cell vector
     for (int i=0; i<L; i++) {
         Cell cell(8, dt, init_vals);
         cells.push_back(cell);
@@ -31,6 +36,7 @@ int main(void) {
         for (int i=0; i<L; i++) { 
             cells[i].update(0);
         }
+        // Reduce saving results to file
         if (fmod(t, write_interval)<0.1) {
             MyFile << t << " ";
             for (int i = 0; i < L; i++)

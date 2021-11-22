@@ -6,20 +6,27 @@ using namespace std;
 
 #include "cell.h"
 
-double Cell::variability(double mean, double std) {
-    // random_device rd;
-    // mt19937 e2(rd());
-    // normal_distribution<> dist(mean, std);
-    // return dist(e2);
-    return mean;
+double Cell::variability(double mean, double std, mt19937 generator) {
+    normal_distribution<double> distribution(mean, std);
+    double number = distribution(generator);
+
+    return number;
 }
 
-
-Cell::Cell(double glucose, double dt, double initial[6]) {
+Cell::Cell(double glucose, double dt, double initial[6], mt19937 generator) {
     m_glucose = glucose;
     m_dt = dt;
     for (size_t i = 0; i < 6; ++i)
         m_results.push_back(initial[i]);
+    m_cm = variability(5300, 1, generator);
+    m_gca = variability(1000, 1, generator);
+    m_gkatp = variability(220, 1, generator); // 150
+    m_gk = variability(2700, 1, generator);
+    m_gs = variability(200, 1, generator);
+    m_gkatp50 = variability(10, 1, generator);
+    m_alfa = variability(5e-6, 1e-7, generator);
+    m_kca = variability(0.6, 1e-3, generator);
+    cout << m_cm << " ";
 }
 Cell::~Cell() {}
 
@@ -44,14 +51,14 @@ void Cell::update(double Icoupling) {
     double taus = 20000.0; // time const
     double fc = 0.001; // fraction of free Ca2+ in intracellular space
 
-    double cm = variability(5300.0, 1); // Plasma membrane capacitance
-    double gca = variability(1000.0, 1); 
-    double gkatp = variability(220.0, 1); // 150
-    double gk = variability(2700.0, 1);
-    double gs = variability(200.0, 1);
-    double gkatp50 = variability(10.0, 1); // 10
-    double alfa = variability(0.000005, 1e-7); // conversion from electrical into chemical gradient
-    double kca = variability(0.6, 1e-3); // 0.2 / removal rate of Ca2+ from intracellular space
+    double cm = m_cm; // Plasma membrane capacitance
+    double gca = m_gca; 
+    double gkatp = m_gkatp; // 150
+    double gk = m_gk;
+    double gs = m_gs;
+    double gkatp50 = m_gkatp50; // 10
+    double alfa = m_alfa; // conversion from electrical into chemical gradient
+    double kca = m_kca; // 0.2 / removal rate of Ca2+ from intracellular space
 
     double gcran = 1.5;
     double Vcran = 0.0;

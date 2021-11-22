@@ -5,16 +5,18 @@ class Cell {
         long randl(long num);
         double randd(void);
         double gasdev(void);
-        double variability(double mean, double std);
+        double variability(double mean, double std, mt19937 generator);
 
-        // Member variables
-        double m_glucose;
-        double m_dt;
+        // Static member variables
+        double m_glucose, m_dt;
         vector<double> m_results;
+
+        // Variable member variables
+        double m_cm, m_gca, m_gkatp, m_gk, m_gs, m_gkatp50, m_alfa, m_kca;
 
     public:
         // Constructor
-        Cell(double glucose, double dt, double initial[6]);
+        Cell(double glucose, double dt, double initial[6], mt19937 generator);
         
         // Destructor
         ~Cell();

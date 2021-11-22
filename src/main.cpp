@@ -24,9 +24,13 @@ int main(void) {
 	vector<double> result;
     vector<Cell> cells;
 
+    // Random device of operating system (windows/unix) – used for runtime seed
+    random_device rd;
     // Add cell objects to cell vector
     for (int i=0; i<L; i++) {
-        Cell cell(8, dt, init_vals);
+        // Pseudorandom (uniform) generator – good seed
+        mt19937 e2(rd());
+        Cell cell(8, dt, init_vals, e2);
         cells.push_back(cell);
         }
     

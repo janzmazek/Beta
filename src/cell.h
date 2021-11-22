@@ -5,7 +5,7 @@ class Cell {
         long randl(long num);
         double randd(void);
         double gasdev(void);
-        double variability(double mean);
+        double variability(double mean, double std);
 
         // Member variables
         double m_glucose;
@@ -14,14 +14,13 @@ class Cell {
 
     public:
         // Constructor
-        Cell(double glucose, double dt);
+        Cell(double glucose, double dt, double initial[6]);
         
         // Destructor
         ~Cell();
         
         // Methods
-        void set_initial(vector<double> initial);
-        void update(void); // Dodati sklopitveni tok kot parameter
+        void update(double coupling_parameter); // Dodati sklopitveni tok kot parameter
         void print_results(void);
         vector<double> get_result(void);
 };

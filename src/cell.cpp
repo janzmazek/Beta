@@ -1,96 +1,29 @@
 #include <iostream>
 #include <vector>
 #include <math.h>
+#include <random>
 using namespace std;
 
 #include "cell.h"
 
-#define RANKSZ_MAX 2147483648.0		// constant for random number generation (not seed)
-
-// Noise generating variables
-long ksz_num[256];
-int ksz_i;
-long seme;
-double fac, rsq, v1, v2;
-
-// NOISE ROUTINES
-// randl -> RANDOM LONG FROM 0 TO (num)
-// randd -> RANDOM DOBULE FROM 0 TO 1
-// gasdev -> RANDOM DOUBLE GAUSS DISTR. FROM 0 TO 1
-//
-void Cell::seed(long seed)
-{
-	ksz_num[0] = (long)fmod(16807.0*(double)seed, 2147483647.0);
-	for (ksz_i = 1; ksz_i<256; ksz_i++)
-	{
-		ksz_num[ksz_i] = (long)fmod(16807.0 * (double)ksz_num[ksz_i - 1], 2147483647.0);
-	}
-}
-
-long Cell::randl(long num)
-{
-	ksz_i = ++ksz_i & 255;
-	ksz_num[ksz_i] = ksz_num[(ksz_i - 103) & 255] ^ ksz_num[(ksz_i - 250) & 255];
-	ksz_i = ++ksz_i & 255;
-	ksz_num[ksz_i] = ksz_num[(ksz_i - 30) & 255] ^ ksz_num[(ksz_i - 127) & 255];
-	return(ksz_num[ksz_i] % num);
-}
-
-double Cell::randd(void)
-{
-	ksz_i = ++ksz_i & 255;
-	ksz_num[ksz_i] = ksz_num[(ksz_i - 103) & 255] ^ ksz_num[(ksz_i - 250) & 255];
-	ksz_i = ++ksz_i & 255;
-	ksz_num[ksz_i] = ksz_num[(ksz_i - 30) & 255] ^ ksz_num[(ksz_i - 127) & 255];
-	return((double)ksz_num[ksz_i] / RANKSZ_MAX);
-}
-
-double Cell::gasdev(void)
-{
-	static int iset = 0;
-	static double gset;
-
-	if (iset == 0)
-	{
-		do
-		{
-			v1 = (float)(2.0*randd() - 1.0);
-			v2 = (float)(2.0*randd() - 1.0);
-			rsq = v1*v1 + v2*v2;
-		} while (rsq >= 1.0 || rsq == 0.0);
-		fac = (float)(sqrt(-2.0*log(rsq) / rsq));
-		gset = v1*fac;
-		iset = 1;
-		return v2*fac;
-	}
-	else
-	{
-		iset = 0;
-		return gset;
-	}
-}
-
-double Cell::variability(double mean) {
+double Cell::variability(double mean, double std) {
+    // random_device rd;
+    // mt19937 e2(rd());
+    // normal_distribution<> dist(mean, std);
+    // return dist(e2);
     return mean;
 }
 
 
-Cell::Cell(double glucose, double dt) {
+Cell::Cell(double glucose, double dt, double initial[6]) {
     m_glucose = glucose;
     m_dt = dt;
-    double init_vals[6] = {-63, 0, 0.25, 0.1, 0.05, 0};
-    m_results.insert(m_results.end(), begin(init_vals), end(init_vals));
+    for (size_t i = 0; i < 6; ++i)
+        m_results.push_back(initial[i]);
 }
+Cell::~Cell() {}
 
-Cell::~Cell() {
-
-}
-
-void Cell::set_initial(vector<double> initial) {
-    m_results = initial;
-}
-
-void Cell::update(void) {
+void Cell::update(double Icoupling) {
     double V = m_results[0];
     double n = m_results[1];
     double s = m_results[2];
@@ -111,19 +44,17 @@ void Cell::update(void) {
     double taus = 20000.0; // time const
     double fc = 0.001; // fraction of free Ca2+ in intracellular space
 
-    double cm = variability(5300.0); // Plasma membrane capacitance
-    double gca = variability(1000.0); 
-    double gkatp = variability(220.0); // 150
-    double gk = variability(2700.0);
-    double gs = variability(200.0);
-    double gkatp50 = variability(10.0); // 10
-    double alfa = variability(0.000005); // conversion from electrical into chemical gradient
-    double kca = variability(0.6); // 0.2 / removal rate of Ca2+ from intracellular space
+    double cm = variability(5300.0, 1); // Plasma membrane capacitance
+    double gca = variability(1000.0, 1); 
+    double gkatp = variability(220.0, 1); // 150
+    double gk = variability(2700.0, 1);
+    double gs = variability(200.0, 1);
+    double gkatp50 = variability(10.0, 1); // 10
+    double alfa = variability(0.000005, 1e-7); // conversion from electrical into chemical gradient
+    double kca = variability(0.6, 1e-3); // 0.2 / removal rate of Ca2+ from intracellular space
 
     double gcran = 1.5;
     double Vcran = 0.0;
-
-    double C = 0.0;
 
 // ------------------------------- Functions ------------------------------- //
     // Fluxes
@@ -154,12 +85,13 @@ void Cell::update(void) {
     Icran = 0.0;
 
 // ------------------------ Differential equations ------------------------- //
-    V += m_dt*( -(IK + ICa + Is + IKatp + Icran + C)/cm);
+    V += m_dt*( -(IK + ICa + Is + IKatp + Icran + Icoupling)/cm);
     n += m_dt*((ninf-n)/taun);
     s += m_dt*((sinf-s)/taus);
     // original, simplistic description of Ca2+ dynamics, 
     // Stamper J Theor Biol 475 2019
     ci += m_dt*(-fc*(alfa*ICa + kca*ci));
+
 
     m_results[0] = V;
     m_results[1] = n;
@@ -170,8 +102,13 @@ void Cell::update(void) {
 }
 
 void Cell::print_results(void) {
-    double V = m_results[0];
-    cout << "V: " << V << "\n";
+    for (int i=0; i<6; i++) {
+        cout << m_results[i];
+        
+    }
+    cout << "\n";
+    // double V = m_results[0];
+    // cout << "V: " << V << "\n";
 }
 
 vector<double> Cell::get_result(void) {
